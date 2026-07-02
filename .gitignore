@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+frontend/node_modules/
+
+# Next.js Build Output
+.next/
+frontend/.next/
+out/
+frontend/out/
+
+# Python Virtual Environment & Cache
+venv/
+backend/venv/
+__pycache__/
+backend/__pycache__/
+*.db
+*.pyc
+
+# Local Environment Secrets
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+backend/.env
