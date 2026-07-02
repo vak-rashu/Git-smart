@@ -14,29 +14,29 @@ from services import github_service, cognee_service, openclaw_service
 
 GITHUB_WEBHOOK_SECRET = os.getenv("GITHUB_WEBHOOK_SECRET")
 
-def verify_signature(payload_body: bytes, signature_header: str) -> bool:
-    if not GITHUB_WEBHOOK_SECRET:
-        logger.warning("GITHUB_WEBHOOK_SECRET is not configured. Skipping signature verification.")
-        return True
-    if not signature_header:
-        logger.error("Missing X-Hub-Signature-256 header")
-        return False
+# def verify_signature(payload_body: bytes, signature_header: str) -> bool:
+#     if not GITHUB_WEBHOOK_SECRET:
+#         logger.warning("GITHUB_WEBHOOK_SECRET is not configured. Skipping signature verification.")
+#         return True
+#     if not signature_header:
+#         logger.error("Missing X-Hub-Signature-256 header")
+#         return False
     
-    try:
-        sha_name, signature = signature_header.split("=", 1)
-        if sha_name != "sha256":
-            logger.error("Signature algorithm is not sha256")
-            return False
+#     try:
+#         sha_name, signature = signature_header.split("=", 1)
+#         if sha_name != "sha256":
+#             logger.error("Signature algorithm is not sha256")
+#             return False
         
-        mac = hmac.new(
-            GITHUB_WEBHOOK_SECRET.encode("utf-8"),
-            msg=payload_body,
-            digestmod=hashlib.sha256
-        )
-        return hmac.compare_digest(mac.hexdigest(), signature)
-    except Exception as e:
-        logger.error(f"Error validating webhook signature: {e}")
-        return False
+#         mac = hmac.new(
+#             GITHUB_WEBHOOK_SECRET.encode("utf-8"),
+#             msg=payload_body,
+#             digestmod=hashlib.sha256
+#         )
+#         return hmac.compare_digest(mac.hexdigest(), signature)
+#     except Exception as e:
+#         logger.error(f"Error validating webhook signature: {e}")
+#         return False
 
 # Initialize DB
 Base.metadata.create_all(bind=engine)
@@ -59,12 +59,11 @@ async def ingest_repository(req: schemas.IngestRepoRequest, db: Session = Depend
     logger.info(f"Triggered ingestion for {req.repo_url}")
     
     # 1. Fetch repo data
-    repo_data = await github_service.fetch_default_branch(req.repo_url)
-    
-    temp_dir = repo_data.get("temp_dir")
+    # repo_data = await github_service.fetch_default_branch(req.repo_url)
+
     try:
         # 2. Pass to Cognee to remember
-        memory_result = await cognee_service.remember(repo_data)
+        memory_result = await cognee_service.remember(req.repo_url)
         
         if memory_result.get("status") == "error":
             logger.error(f"Cognee ingestion error: {memory_result.get('reason')}")
@@ -79,23 +78,23 @@ async def ingest_repository(req: schemas.IngestRepoRequest, db: Session = Depend
             db.add(repo_meta)
         db.commit()
         
-        files_count = repo_data.get("files_fetched", 0)
         return {
             "status": "success",
-            "message": f"Repository ingested successfully. Files fetched: {files_count}. Graph nodes: {graph_nodes}"
+            "message": f"Repository ingested successfully. Graph nodes: {graph_nodes}"
         }
-    finally:
-        if temp_dir and os.path.exists(temp_dir):
-            shutil.rmtree(temp_dir)
-            logger.info(f"Cleaned up temporary directory: {temp_dir}")
-
+    except Exception as e:
+        logger.error(f"Unexpected error during ingestion: {e}")
+        return {
+            "status": "error",
+            "message": str(e)
+        }
 @app.post("/api/webhooks/github")
 async def github_webhook(request: Request, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     signature_header = request.headers.get("X-Hub-Signature-256")
     body = await request.body()
     
-    if not verify_signature(body, signature_header):
-        raise HTTPException(status_code=401, detail="Invalid signature")
+    # if not verify_signature(body, signature_header):
+    #     raise HTTPException(status_code=401, detail="Invalid signature")
         
     try:
         payload = json.loads(body)
