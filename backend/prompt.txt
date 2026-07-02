@@ -1,0 +1,261 @@
+# Project: AI-Native Git-Compatible Code Hosting Platform
+
+## Overview
+
+I want to build a lightweight AI-native Git-compatible code hosting platform as a prototype for the Cognee Hackathon.
+
+The goal is not to build a complete GitHub replacement. Instead, this prototype should demonstrate how persistent repository memory can improve software engineering workflows.
+
+The platform should showcase how humans and AI agents collaborate around a continuously evolving repository memory.
+
+The primary focus of this project is Cognee's persistent memory lifecycle, not code hosting itself.
+
+---
+
+# Vision
+
+Traditional code hosting platforms treat repositories as collections of files.
+
+This platform treats repositories as living knowledge systems.
+
+Every repository continuously builds and updates its own memory.
+
+AI agents retrieve this memory to make engineering decisions.
+
+---
+
+# Technology Stack
+
+Use:
+
+* Frontend: Next.js
+* Backend: FastAPI
+* Git-compatible repository storage
+* Jenkins for CI
+* Ollama for local LLM inference
+* OpenClaw for agent orchestration
+* Cognee as the persistent memory layer
+
+Repository memory must be managed entirely by Cognee.
+
+---
+
+# Repository Memory
+
+Whenever a repository is created or imported:
+
+Cognee should ingest the repository.
+
+Using Cognee's memory lifecycle APIs (Remember, Recall, Improve/Memify, Forget, Cognify where appropriate), build a continuously evolving repository memory.
+
+Repository memory should include (but not be limited to):
+
+* semantic understanding
+* architecture summaries
+* dependency graph
+* module relationships
+* API contracts
+* documentation
+* coding conventions
+* repository metadata
+* architectural decisions
+* service relationships
+
+Repository memory must evolve.
+
+Whenever code changes:
+
+* add new knowledge
+* update existing knowledge
+* remove stale knowledge
+* update relationships
+
+If code is deleted, obsolete memories and relationships should be forgotten using Cognee's lifecycle.
+
+---
+
+# Repository Lifecycle
+
+Repository Created
+
+↓
+
+Cognee ingests repository
+
+↓
+
+Repository memory built
+
+↓
+
+Repository ready
+
+---
+
+Whenever commits are pushed to the default branch:
+
+Update repository memory.
+
+The memory should always represent the latest repository state.
+
+---
+
+# Pull Request Workflow
+
+When a contributor creates a Pull Request:
+
+1. Receive PR event.
+2. Retrieve code diff.
+3. Trigger Jenkins pipeline.
+4. Wait until CI finishes.
+5. Collect:
+
+   * build logs
+   * test results
+   * lint results
+   * artifacts
+6. Retrieve repository memory from Cognee.
+7. AI agents analyze:
+
+   * repository memory
+   * code diff
+   * CI output
+   * documentation
+   * architecture
+8. Generate detailed reasoning.
+9. Produce final recommendation.
+
+The AI must never evaluate the PR before CI has completed.
+
+---
+
+# PR Decision
+
+Every Pull Request receives:
+
+CI
+
+Tests
+
+Style
+
+Architecture
+
+Security
+
+Documentation
+
+Regression Risk
+
+Overall Recommendation
+
+Each category must contain detailed reasoning.
+
+Example:
+
+Repository-aware review:
+
+"The Payment module has consistently used event-driven communication for external services.
+
+This PR introduces a synchronous HTTP call from OrderService to PaymentService, increasing coupling and violating the repository's established communication pattern.
+
+The repository memory indicates that asynchronous messaging has been the standard architectural pattern for external service communication."
+
+The explanation should be detailed and understandable.
+
+---
+
+# Accepted and Rejected PRs
+
+Accepted PRs appear in the Pull Request dashboard.
+
+Rejected PRs appear in a separate Rejected PR dashboard.
+
+Both should contain:
+
+* AI reasoning
+* CI summary
+* Architecture observations
+* Risk analysis
+* Repository consistency evaluation
+
+---
+# Duplicate Pull Request Detection
+
+Maintain a separate memory of Pull Requests using Cognee.
+
+Store both open and closed PRs.
+
+Whenever a new PR is opened:
+
+Determine whether a semantically similar PR already exists.
+
+Comparison should include:
+
+* PR description
+* code diff
+* implementation intent
+* repository context
+
+This should use Cognee's memory retrieval instead of simple text similarity.
+
+---
+
+# Agent Responsibilities
+
+Design a multi-agent architecture.
+
+Possible agents include:
+
+* Repository Memory Agent
+* CI Analysis Agent
+* Architecture Review Agent
+* Code Quality Agent
+* Documentation Agent
+* Duplicate PR Detection Agent
+* Decision Agent
+
+Agents should retrieve knowledge from Cognee instead of maintaining independent long-term memories.
+
+Cognee should be the single persistent memory layer.
+
+---
+
+# Dashboard
+
+The prototype should contain:
+
+* Repository Dashboard
+* Repository Memory Status
+* Architecture Summary
+* Pull Requests
+* Accepted Pull Requests
+* Rejected Pull Requests
+* Pull Request Details
+* CI Results
+* Repository Memory Explorer
+
+The dashboard should clearly demonstrate that repository memory evolves over time.
+
+---
+
+# Important
+
+This is a prototype intended for the Cognee Hackathon.
+
+The emphasis is not on implementing a complete Git hosting platform.
+
+The emphasis is on demonstrating how Cognee's persistent memory lifecycle enables repository-aware AI engineering workflows.
+
+Before implementation:
+
+1. Design the complete architecture.
+2. Explain how Cognee's memory lifecycle is integrated.
+3. Explain the repository lifecycle.
+4. Explain the PR lifecycle.
+5. Design the agent architecture.
+6. Design the database schema.
+7. Design the API.
+8. Define milestones.
+
+Do not begin implementation until the architecture is finalized.

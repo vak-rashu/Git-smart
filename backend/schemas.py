@@ -8,6 +8,8 @@ class PRReviewResponse(BaseModel):
     title: str
     status: str
     reasoning: Optional[str] = None
+    architecture_review: Optional[str] = None
+    quality_review: Optional[str] = None
     created_at: datetime
 
     class Config:

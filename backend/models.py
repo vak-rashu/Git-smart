@@ -18,8 +18,9 @@ class PRReview(Base):
     title = Column(String)
     status = Column(String) # "Accepted", "Rejected", "Pending"
     reasoning = Column(Text)
+    architecture_review = Column(Text, nullable=True)
+    quality_review = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
-
 class RepoMetadata(Base):
     __tablename__ = "repo_metadata"
 

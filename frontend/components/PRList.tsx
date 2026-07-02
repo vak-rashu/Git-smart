@@ -9,6 +9,8 @@ type PR = {
   title: string;
   status: string;
   reasoning: string;
+  architecture_review?: string;
+  quality_review?: string;
   created_at: string;
 };
 
@@ -26,11 +28,8 @@ export default function PRList() {
           setPrs(data);
         }
       } catch (e) {
-        console.log("Backend not reachable, using mock data");
-        setPrs([
-          { id: 1, pr_number: 42, title: "Add Redis Caching Layer", status: "Accepted", reasoning: "Adheres to repo architecture.", created_at: new Date().toISOString() },
-          { id: 2, pr_number: 43, title: "Use Memcached for auth", status: "Rejected", reasoning: "Conflicts with standard Redis pattern found in memory.", created_at: new Date().toISOString() }
-        ]);
+        console.log("Backend not reachable or returning error.");
+        setPrs([]);
       }
     };
     fetchPRs();
@@ -70,20 +69,35 @@ export default function PRList() {
           </div>
         ) : (
           filteredPRs.map(pr => (
-            <div key={pr.id} className="p-4 rounded-lg bg-neutral-900 border border-neutral-800 hover:border-neutral-700 transition-colors">
+            <div key={pr.id} className="p-4 rounded-lg bg-neutral-900 border border-neutral-800 hover:border-neutral-700 hover:shadow-[0_0_15px_rgba(56,189,248,0.1)] hover:-translate-y-1 transition-all duration-300">
               <div className="flex justify-between items-start mb-2">
                 <h3 className="font-medium text-white flex items-center gap-2">
                   #{pr.pr_number} - {pr.title}
                 </h3>
                 {pr.status === "Accepted" ? (
-                  <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                  <CheckCircle2 className="w-5 h-5 text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.5)]" />
                 ) : (
-                  <XCircle className="w-5 h-5 text-red-400" />
+                  <XCircle className="w-5 h-5 text-red-400 drop-shadow-[0_0_8px_rgba(248,113,113,0.5)]" />
                 )}
               </div>
-              <p className="text-sm text-neutral-400 mt-3 p-3 bg-black/20 rounded-md border border-neutral-800 font-mono leading-relaxed">
-                <span className="text-blue-400">Agent Reasoning:</span> {pr.reasoning}
-              </p>
+              <div className="space-y-3 mt-4">
+                <p className="text-sm text-neutral-400 p-3 bg-black/40 rounded-md border border-neutral-800/50 leading-relaxed">
+                  <span className="text-blue-400 font-semibold block mb-1">Decision Agent Reasoning:</span> 
+                  {pr.reasoning}
+                </p>
+                {pr.architecture_review && (
+                  <p className="text-sm text-neutral-400 p-3 bg-black/40 rounded-md border border-neutral-800/50 leading-relaxed">
+                    <span className="text-purple-400 font-semibold block mb-1">Architecture Agent:</span> 
+                    {pr.architecture_review}
+                  </p>
+                )}
+                {pr.quality_review && (
+                  <p className="text-sm text-neutral-400 p-3 bg-black/40 rounded-md border border-neutral-800/50 leading-relaxed">
+                    <span className="text-emerald-400 font-semibold block mb-1">Code Quality Agent:</span> 
+                    {pr.quality_review}
+                  </p>
+                )}
+              </div>
             </div>
           ))
         )}
