@@ -11,66 +11,6 @@ GITHUB_PAT_TOKEN = os.getenv("GITHUB_PAT_TOKEN")
 
 logger = logging.getLogger(__name__)
 
-async def fetch_default_branch(repo_url: str):
-    # Parse owner and repo name from the URL
-    match = re.match(r"https?://github\.com/([^/]+)/([^/]+?)(?:\.git)?$", repo_url)
-    if not match:
-        raise HTTPException(status_code=400, detail="Invalid GitHub repository URL")
-    owner, repo_name = match.groups()
-    headers = {}
-    if GITHUB_PAT_TOKEN:
-        headers["Authorization"] = f"token {GITHUB_PAT_TOKEN}"
-
-    # 1. Fetch repository metadata to find the default branch name
-    repo_api_url = f"https://api.github.com/repos/{owner}/{repo_name}"
-    resp = requests.get(repo_api_url, headers=headers)
-    if resp.status_code != 200:
-        raise HTTPException(status_code=400, detail=f"Failed to fetch repo info: {resp.text}")
-    
-    default_branch = resp.json().get("default_branch", "main")
-
-    # 2. Fetch the recursive git tree for the default branch
-    tree_url = f"https://api.github.com/repos/{owner}/{repo_name}/git/trees/{default_branch}?recursive=1"
-    tree_resp = requests.get(tree_url, headers=headers)
-    if tree_resp.status_code != 200:
-        raise HTTPException(status_code=400, detail=f"Failed to fetch git tree: {tree_resp.text}")
-    tree_data = tree_resp.json()
-    tree = tree_data.get("tree", [])
-
-    # Create a temporary directory to download files to
-    temp_dir = tempfile.mkdtemp(prefix=f"cognee_{repo_name}_")
-    
-    # Filter for standard code/text files
-    allowed_extensions = {
-        '.py', '.js', '.ts', '.tsx', '.jsx', '.html', '.css', 
-        '.md', '.json', '.txt', '.yml', '.yaml', '.toml'
-    }
-    files_fetched = 0
-    for item in tree:
-        if item.get("type") == "blob":
-            file_path = item.get("path")
-            
-            # Skip hidden configuration folders/files (except github workflows)
-            if file_path.startswith(".") and not file_path.startswith(".github/"):
-                continue
-            
-            _, ext = os.path.splitext(file_path.lower())
-            if ext not in allowed_extensions:
-                continue
-
-            # 3. Download raw file contents using the GitHub Raw content URL
-            raw_file_url = f"https://raw.githubusercontent.com/{owner}/{repo_name}/{default_branch}/{file_path}"
-            file_resp = requests.get(raw_file_url, headers=headers)
-
-            if file_resp.status_code == 200:
-                # Recreate the folder structure locally inside our temp directory
-                local_file_path = os.path.join(temp_dir, file_path)
-                os.makedirs(os.path.dirname(local_file_path), exist_ok=True)
-                
-                with open(local_file_path, "w", encoding="utf-8") as f:
-                    f.write(file_resp.text)
-                files_fetched += 1
-    return {"temp_dir": temp_dir, "files_fetched": files_fetched}
 
 async def fetch_pr_diff(owner: str, repo: str, pr_number: int):
     headers = {
