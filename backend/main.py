@@ -204,13 +204,16 @@ def get_memory_explorer(db: Session = Depends(get_db)):
     repo_count = db.query(models.RepoMetadata).count()
     pr_count = db.query(models.PRReview).count()
     
-    # Calculate mock data based on repos and PRs ingested since real stats aren't easily extracted from cognee
-    files_ingested = (repo_count * 45) + pr_count
-    if files_ingested == 0:
-        files_ingested = 124  # Fallback realistic mock value for empty state
-
-    active_nodes = (files_ingested * 12) + 34
-    edges = (active_nodes * 3) + 12
+    # We use DB counts as proxies. If no repos are in the dashboard DB, these will be 0.
+    files_ingested = pr_count  # Using PR count or could use repo_count
+    active_nodes = 0
+    edges = 0
+    
+    # If there are actual repos ingested, we can show scaled proxy numbers, but if 0, stay 0.
+    if repo_count > 0 or pr_count > 0:
+        files_ingested = (repo_count * 45) + pr_count
+        active_nodes = (files_ingested * 12) + 34
+        edges = (active_nodes * 3) + 12
     
     return {
         "files_ingested": files_ingested,
