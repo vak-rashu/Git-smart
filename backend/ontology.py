@@ -42,6 +42,14 @@ class Developer(BaseClass):
     """Represents a human developer, contributor, or author."""
     name: str = Field(..., description="Name or username of the developer")
 
+class PullRequest(BaseClass):
+    """Represents a GitHub Pull Request."""
+    pr_number: int = Field(..., description="The PR number")
+    title: str = Field(..., description="The title of the PR")
+    diff: Optional[str] = Field(None, description="The code changes in the PR")
+    status: Optional[str] = Field(None, description="The status (e.g. Accepted, Rejected, Open)")
+    reasoning: Optional[str] = Field(None, description="The reasoning or comments given by the agent")
+
 def init_ontology():
     """
     Initializes and registers the custom ontology.

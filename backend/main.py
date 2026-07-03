@@ -237,3 +237,16 @@ def get_memory_explorer(db: Session = Depends(get_db)):
         "edges": edges,
         "last_sync": "Recently"
     }
+
+@app.get("/api/search")
+async def search_memory(q: str):
+    logger.info(f"Searching Cognee memory for: {q}")
+    if not q:
+        return {"results": "Please provide a query."}
+    
+    try:
+        search_response = await cognee_service.recall(q)
+        return {"results": search_response.get("context", "No results found.")}
+    except Exception as e:
+        logger.error(f"Search failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

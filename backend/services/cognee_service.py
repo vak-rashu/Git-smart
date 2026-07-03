@@ -49,7 +49,17 @@ async def recall(diff_context: str):
     
     try:
         search_results = await cognee.recall(diff_context)
-        context_str = "\n".join([str(res) for res in search_results]) if search_results else "No relevant context found."
+        
+        formatted_results = []
+        for res in search_results:
+            if hasattr(res, 'text'):
+                formatted_results.append(res.text)
+            elif isinstance(res, dict) and 'text' in res:
+                formatted_results.append(res['text'])
+            else:
+                formatted_results.append(str(res))
+                
+        context_str = "\n\n".join(formatted_results) if formatted_results else "No relevant context found."
         return {"context": context_str}
     except Exception as e:
         logger.error(f"Cognee recall failed: {e}")
@@ -57,9 +67,15 @@ async def recall(diff_context: str):
 
 async def remember_pr(pr_number: int, pr_title: str, pr_diff: str, reasoning: str):
     logger.info(f"Cognee: Remembering PR #{pr_number}")
-    pr_data = f"Past Pull Request #{pr_number}: {pr_title}\nDiff: {pr_diff}\nAgent Reasoning: {reasoning}"
     try:
-        await cognee.remember(pr_data)
+        pr_obj = ontology.PullRequest(
+            pr_number=pr_number,
+            title=pr_title,
+            diff=pr_diff,
+            status="Reviewed",
+            reasoning=reasoning
+        )
+        await cognee.remember(pr_obj)
         return True
     except Exception as e:
         logger.error(f"Failed to remember PR {pr_number}: {e}")
