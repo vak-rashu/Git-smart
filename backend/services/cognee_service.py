@@ -8,17 +8,18 @@ if "GEMINI_API_KEY" in os.environ:
     os.environ["LLM_API_KEY"] = os.environ["GEMINI_API_KEY"]
 
 import cognee
+import ontology
+
 logger = logging.getLogger(__name__)
 
-async def remember(repo_data: dict):
+# Initialize custom Software Engineering Ontology for Cognee
+ontology.init_ontology()
+
+async def remember(repo_url: str):
     logger.info("Cognee: Remembering repository data (Initial Ingestion)")
-    temp_dir = repo_data.get("temp_dir")
     
-    if not temp_dir:
-        return {"status": "failed", "reason": "No temporary directory provided"}
-        
     try:
-        await cognee.remember(f"data://{temp_dir}")
+        await cognee.remember(repo_url)
         return {"status": "success", "graph_nodes": "unknown (cognified via remember)"}
     except Exception as e:
         logger.error(f"Cognee ingestion failed: {e}")
