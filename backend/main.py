@@ -8,7 +8,7 @@ import hmac
 import hashlib
 import json
 
-from database import engine, Base, get_db
+from database import engine, Base, get_db, SessionLocal
 import models, schemas
 from services import github_service, cognee_service, openclaw_service
 
@@ -114,10 +114,13 @@ async def github_webhook(request: Request, background_tasks: BackgroundTasks, db
         return {"status": "accepted"}
         
     elif event_type == "pull_request":
-        logger.info("Received pull_request webhook")
         action = payload.get("action")
+        logger.info(f"Received pull_request webhook with action: {action}")
         if action in ["opened", "synchronize"]:
-            background_tasks.add_task(handle_pr_event, payload, db)
+            logger.info("Spawning background task to handle PR...")
+            background_tasks.add_task(handle_pr_event, payload)
+        else:
+            logger.info(f"Ignoring PR action: {action}")
         return {"status": "accepted"}
         
     return {"status": "ignored"}
@@ -138,61 +141,75 @@ async def handle_push_event(payload: dict):
     if removed:
         await cognee_service.forget(removed)
 
-async def handle_pr_event(payload: dict, db: Session):
-    pr_data = payload.get("pull_request", {})
-    pr_number = pr_data.get("number")
-    pr_title = pr_data.get("title", f"PR #{pr_number}")
-    
-    # Extract owner, repo, and head SHA for real GitHub API calls
-    repo_data = payload.get("repository", {})
-    owner = repo_data.get("owner", {}).get("login")
-    repo = repo_data.get("name")
-    sha = pr_data.get("head", {}).get("sha")
-    
-    if not owner or not repo or not pr_number:
-        logger.error(f"Missing essential PR metadata (owner={owner}, repo={repo}, pr_number={pr_number})")
-        return
+async def handle_pr_event(payload: dict):
+    db = SessionLocal()
+    try:
+        try:
+            pr_data = payload.get("pull_request", {})
+            pr_number = pr_data.get("number")
+            pr_title = pr_data.get("title", f"PR #{pr_number}")
+            
+            # Extract owner, repo, and head SHA for real GitHub API calls
+            repo_data = payload.get("repository", {})
+            owner = repo_data.get("owner", {}).get("login")
+            repo = repo_data.get("name")
+            sha = pr_data.get("head", {}).get("sha")
+            
+            if not owner or not repo or not pr_number:
+                logger.error(f"Missing essential PR metadata (owner={owner}, repo={repo}, pr_number={pr_number})")
+                return
 
-    # 1. Fetch diff
-    diff = await github_service.fetch_pr_diff(owner, repo, pr_number)
-    
-    # 2. Wait for CI
-    ci_status = await github_service.wait_for_ci(owner, repo, sha)
-    
-    # 3. Recall Context (passing the string diff instead of the dict)
-    context_data = await cognee_service.recall(diff.get("diff", ""))
-    
-    # 3.5 Check for duplicate PRs
-    duplicate_context = await cognee_service.check_duplicate_pr(diff.get("diff", ""), pr_title)
-    if duplicate_context:
-        context_data["duplicate_warnings"] = duplicate_context
-    
-    # 4. OpenClaw Multi-agent analysis
-    review_result = await openclaw_service.analyze_pr(diff, ci_status, context_data, pr_title)
-    
-    # 4.5 Save evaluated PR to Cognee memory
-    await cognee_service.remember_pr(
-        pr_number=pr_number, 
-        pr_title=pr_title, 
-        pr_diff=diff.get("diff", ""), 
-        reasoning=review_result.get("reasoning", "")
-    )
-    
-    # 5. Post review to GitHub
-    await github_service.post_pr_comment(owner, repo, pr_number, review_result["reasoning"])
-    
-    # 6. Save to DB for dashboard
-    pr_review = models.PRReview(
-        pr_number=pr_number,
-        title=pr_title,
-        status=review_result.get("status", "Rejected"),
-        reasoning=review_result.get("reasoning", ""),
-        architecture_review=review_result.get("architecture_review", ""),
-        quality_review=review_result.get("quality_review", "")
-    )
-    db.add(pr_review)
-    db.commit()
-    logger.info(f"PR Review saved for PR #{pr_number}")
+            # 1. Fetch diff
+            logger.info("Fetching diff...")
+            diff = await github_service.fetch_pr_diff(owner, repo, pr_number)
+            
+            # 2. Wait for CI
+            logger.info("Waiting for CI...")
+            ci_status = await github_service.wait_for_ci(owner, repo, sha)
+            
+            # 3. Recall Context (passing the string diff instead of the dict)
+            logger.info("Recalling context from Cognee...")
+            context_data = await cognee_service.recall(diff.get("diff", ""))
+            
+            # 3.5 Check for duplicate PRs
+            duplicate_context = await cognee_service.check_duplicate_pr(diff.get("diff", ""), pr_title)
+            if duplicate_context:
+                context_data["duplicate_warnings"] = duplicate_context
+            
+            # 4. OpenClaw Multi-agent analysis
+            logger.info("Starting OpenClaw analysis...")
+            review_result = await openclaw_service.analyze_pr(diff, ci_status, context_data, pr_title)
+            
+            # 4.5 Save evaluated PR to Cognee memory
+            logger.info("Saving memory...")
+            await cognee_service.remember_pr(
+                pr_number=pr_number, 
+                pr_title=pr_title, 
+                pr_diff=diff.get("diff", ""), 
+                reasoning=review_result.get("reasoning", "")
+            )
+            
+            # 5. Post review to GitHub
+            logger.info("Posting review to GitHub...")
+            await github_service.post_pr_comment(owner, repo, pr_number, review_result["reasoning"])
+            
+            # 6. Save to DB for dashboard
+            logger.info("Saving to database...")
+            pr_review = models.PRReview(
+                pr_number=pr_number,
+                title=pr_title,
+                status=review_result.get("status", "Rejected"),
+                reasoning=review_result.get("reasoning", ""),
+                architecture_review=review_result.get("architecture_review", ""),
+                quality_review=review_result.get("quality_review", "")
+            )
+            db.add(pr_review)
+            db.commit()
+            logger.info(f"PR Review saved for PR #{pr_number}")
+        except Exception as e:
+            logger.error(f"FATAL ERROR in handle_pr_event: {str(e)}", exc_info=True)
+    finally:
+        db.close()
 
 @app.get("/api/prs", response_model=list[schemas.PRReviewResponse])
 def get_prs(db: Session = Depends(get_db)):
