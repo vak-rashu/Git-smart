@@ -17,7 +17,7 @@ async def connect_to_openclaw():
             "method": "connect",
             "params": {
                 # Add required authentication token or client info here
-                "token": "0e4f1f6189f50768525d2666e07e93fb39a3d945282fde58" 
+                "token": "" 
             }
         }
         
