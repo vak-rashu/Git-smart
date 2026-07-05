@@ -27,3 +27,15 @@ class RepoMetadata(Base):
     id = Column(Integer, primary_key=True, index=True)
     repo_name = Column(String, unique=True, index=True)
     last_ingested = Column(DateTime, default=datetime.utcnow)
+
+class PendingPR(Base):
+    __tablename__ = "pending_prs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    owner = Column(String, index=True)
+    repo = Column(String, index=True)
+    pr_number = Column(Integer, index=True)
+    title = Column(String)
+    sha = Column(String, index=True)
+    ci_status = Column(String, default="pending")
+    created_at = Column(DateTime, default=datetime.utcnow)

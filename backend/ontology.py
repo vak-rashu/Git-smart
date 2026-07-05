@@ -7,11 +7,15 @@ logger = logging.getLogger(__name__)
 # In Cognee, custom entities should ideally subclass `DataPoint`.
 # We use a fallback to BaseModel so the app doesn't crash if imports fail.
 try:
-    from cognee.infrastructure.engine import DataPoint
+    from cognee.low_level import DataPoint
     BaseClass = DataPoint
 except ImportError:
-    BaseClass = BaseModel
-    logger.warning("Could not import cognee DataPoint. Using Pydantic BaseModel instead.")
+    try:
+        from cognee.infrastructure.engine import DataPoint
+        BaseClass = DataPoint
+    except ImportError:
+        BaseClass = BaseModel
+        logger.warning("Could not import cognee DataPoint. Using Pydantic BaseModel instead.")
 
 class AIAgent(BaseClass):
     """Represents an autonomous AI agent or LLM wrapper."""
