@@ -17,3 +17,7 @@ class PRReviewResponse(BaseModel):
 
 class IngestRepoRequest(BaseModel):
     repo_url: str
+
+class ChatRequest(BaseModel):
+    query: str
+    pr_number: Optional[int] = None
